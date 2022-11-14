@@ -34,6 +34,8 @@ export type BottomTabNavigationEventMap = {
 
 export type LabelPosition = 'beside-icon' | 'below-icon';
 
+export type TabBarPosition = 'left' | 'right' | 'bottom';
+
 export type BottomTabNavigationHelpers = NavigationHelpers<
   ParamListBase,
   BottomTabNavigationEventMap
@@ -270,6 +272,11 @@ export type BottomTabNavigationOptions = HeaderOptions & {
    * Object which specifies the animation type (timing or spring) and their options (such as duration for timing).
    */
   transitionSpec?: TransitionSpec;
+
+  /**
+   * Bottom tab-bar position on the window.
+   */
+  tabBarPosition?: TabBarPosition;
 };
 
 export type BottomTabDescriptor = Descriptor<

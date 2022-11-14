@@ -9,7 +9,13 @@ import type {
   TabNavigationState,
 } from '@react-navigation/native';
 import * as React from 'react';
-import { Animated, Platform, StyleSheet } from 'react-native';
+import {
+  Animated,
+  Platform,
+  StyleProp,
+  StyleSheet,
+  ViewStyle,
+} from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import type {
@@ -19,6 +25,7 @@ import type {
   BottomTabNavigationConfig,
   BottomTabNavigationHelpers,
   BottomTabNavigationProp,
+  TabBarPosition,
 } from '../types';
 import { BottomTabBarHeightCallbackContext } from '../utils/BottomTabBarHeightCallbackContext';
 import { BottomTabBarHeightContext } from '../utils/BottomTabBarHeightContext';
@@ -38,6 +45,11 @@ const STATE_INACTIVE = 0;
 const STATE_TRANSITIONING_OR_BELOW_TOP = 1;
 const STATE_ON_TOP = 2;
 
+type TabBarContainerPositionMapConfig = Record<
+  TabBarPosition,
+  StyleProp<ViewStyle>
+>;
+
 export function BottomTabView(props: Props) {
   const {
     tabBar = (props: BottomTabBarProps) => <BottomTabBar {...props} />,
@@ -55,6 +67,7 @@ export function BottomTabView(props: Props) {
   /**
    * List of loaded tabs, tabs will be loaded when navigated to.
    */
+  const { tabBarPosition = 'bottom' } = descriptors[focusedRouteKey].options;
   const [loaded, setLoaded] = React.useState([focusedRouteKey]);
 
   if (!loaded.includes(focusedRouteKey)) {
@@ -133,7 +146,7 @@ export function BottomTabView(props: Props) {
   );
 
   return (
-    <SafeAreaProviderCompat>
+    <SafeAreaProviderCompat style={tabBarContainerPosition[tabBarPosition]}>
       <MaybeScreenContainer
         enabled={detachInactiveScreens}
         hasTwoStates={hasTwoStates}
@@ -223,12 +236,23 @@ export function BottomTabView(props: Props) {
           );
         })}
       </MaybeScreenContainer>
+
       <BottomTabBarHeightCallbackContext.Provider value={setTabBarHeight}>
         {renderTabBar()}
       </BottomTabBarHeightCallbackContext.Provider>
     </SafeAreaProviderCompat>
   );
 }
+
+const tabBarContainerPosition: TabBarContainerPositionMapConfig = {
+  bottom: {},
+  right: {
+    flexDirection: 'row',
+  },
+  left: {
+    flexDirection: 'row-reverse',
+  },
+};
 
 const styles = StyleSheet.create({
   container: {

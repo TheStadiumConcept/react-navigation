@@ -20,7 +20,11 @@ import {
 } from 'react-native';
 import { EdgeInsets, useSafeAreaFrame } from 'react-native-safe-area-context';
 
-import type { BottomTabBarProps, BottomTabDescriptorMap } from '../types';
+import type {
+  BottomTabBarProps,
+  BottomTabDescriptorMap,
+  TabBarPosition,
+} from '../types';
 import { BottomTabBarHeightCallbackContext } from '../utils/BottomTabBarHeightCallbackContext';
 import { useIsKeyboardShown } from '../utils/useIsKeyboardShown';
 import { BottomTabItem } from './BottomTabItem';
@@ -29,7 +33,14 @@ type Props = BottomTabBarProps & {
   style?: Animated.WithAnimatedValue<StyleProp<ViewStyle>>;
 };
 
+type TabBarPositionMapConfig = Record<
+  TabBarPosition,
+  Record<'tabBar' | 'content' | 'tabBarItem', ViewStyle>
+>;
+
+const COMPACT_TABITEM_GAP = 12;
 const DEFAULT_TABBAR_HEIGHT = 49;
+const MINIMUM_TABBAR_HEIGHT = 50;
 const COMPACT_TABBAR_HEIGHT = 32;
 const DEFAULT_MAX_TAB_ITEM_WIDTH = 125;
 
@@ -48,7 +59,7 @@ const shouldUseHorizontalLabels = ({
   layout,
   dimensions,
 }: Options) => {
-  const { tabBarLabelPosition } =
+  const { tabBarLabelPosition, tabBarPosition } =
     descriptors[state.routes[state.index].key].options;
 
   if (tabBarLabelPosition) {
@@ -58,6 +69,10 @@ const shouldUseHorizontalLabels = ({
       case 'below-icon':
         return false;
     }
+  }
+
+  if (tabBarPosition !== 'bottom') {
+    return false;
   }
 
   if (layout.width >= 768) {
@@ -147,6 +162,7 @@ export function BottomTabBar({
     tabBarBackground,
     tabBarActiveTintColor,
     tabBarInactiveTintColor,
+    tabBarPosition = 'bottom',
     tabBarActiveBackgroundColor,
     tabBarInactiveBackgroundColor,
   } = focusedOptions;
@@ -253,14 +269,67 @@ export function BottomTabBar({
 
   const tabBarBackgroundElement = tabBarBackground?.();
 
+  const sharedTabBarStyle: TabBarPositionMapConfig['bottom'] = {
+    tabBarItem: {
+      flex: 0,
+      justifyContent: 'flex-start',
+      minHeight: MINIMUM_TABBAR_HEIGHT,
+      marginVertical: COMPACT_TABITEM_GAP,
+    },
+    tabBar: {
+      elevation: 8,
+      paddingHorizontal: 5,
+      paddingTop: insets.top,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: COMPACT_TABITEM_GAP,
+    },
+  };
+
+  const tabBarPositionMap: TabBarPositionMapConfig = {
+    right: {
+      ...sharedTabBarStyle,
+      tabBar: {
+        ...sharedTabBarStyle.tabBar,
+        borderLeftColor: colors.border,
+        borderLeftWidth: StyleSheet.hairlineWidth,
+      },
+    },
+
+    left: {
+      ...sharedTabBarStyle,
+      tabBar: {
+        ...sharedTabBarStyle.tabBar,
+        borderRightColor: colors.border,
+        borderRightWidth: StyleSheet.hairlineWidth,
+      },
+    },
+
+    bottom: {
+      tabBarItem: {},
+      tabBar: {
+        elevation: 8,
+        height: tabBarHeight,
+        borderTopColor: colors.border,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        paddingHorizontal: Math.max(insets.left, insets.right),
+      },
+      content: {
+        flex: 1,
+        flexDirection: 'row',
+      },
+    },
+  };
+
   return (
     <Animated.View
       style={[
-        styles.tabBar,
+        styles.layout,
+        tabBarPositionMap[tabBarPosition].tabBar,
         {
           backgroundColor:
             tabBarBackgroundElement != null ? 'transparent' : colors.card,
-          borderTopColor: colors.border,
         },
         {
           transform: [
@@ -279,9 +348,7 @@ export function BottomTabBar({
           position: isTabBarHidden ? 'absolute' : (null as any),
         },
         {
-          height: tabBarHeight,
           paddingBottom,
-          paddingHorizontal: Math.max(insets.left, insets.right),
         },
         tabBarStyle,
       ]}
@@ -291,7 +358,10 @@ export function BottomTabBar({
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
         {tabBarBackgroundElement}
       </View>
-      <View accessibilityRole="tablist" style={styles.content}>
+      <View
+        accessibilityRole="tablist"
+        style={tabBarPositionMap[tabBarPosition].content}
+      >
         {routes.map((route, index) => {
           const focused = index === state.index;
           const { options } = descriptors[route.key];
@@ -366,7 +436,10 @@ export function BottomTabBar({
                   showLabel={tabBarShowLabel}
                   labelStyle={options.tabBarLabelStyle}
                   iconStyle={options.tabBarIconStyle}
-                  style={options.tabBarItemStyle}
+                  style={[
+                    options.tabBarItemStyle,
+                    tabBarPositionMap[tabBarPosition].tabBarItem,
+                  ]}
                 />
               </NavigationRouteContext.Provider>
             </NavigationContext.Provider>
@@ -378,15 +451,9 @@ export function BottomTabBar({
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
+  layout: {
     left: 0,
     right: 0,
     bottom: 0,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    elevation: 8,
-  },
-  content: {
-    flex: 1,
-    flexDirection: 'row',
   },
 });
